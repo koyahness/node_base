@@ -10,29 +10,29 @@ METRICS_PORT="${METRICS_PORT:-6060}"
 DISCOVERY_PORT="${DISCOVERY_PORT:-30303}"
 P2P_PORT="${P2P_PORT:-30303}"
 ADDITIONAL_ARGS=""
-NODE_TYPE="${NODE_TYPE:-vanilla}"
+BINARY="./base-reth-node"
 
 if [[ -z "${RETH_CHAIN:-}" ]]; then
     echo "expected RETH_CHAIN to be set" 1>&2
     exit 1
 fi
 
-# Add Flashblocks support for base mode
-if [[ "$NODE_TYPE" == "base" && -n "${RETH_FB_WEBSOCKET_URL:-}" ]]; then
-    ADDITIONAL_ARGS="--websocket-url=$RETH_FB_WEBSOCKET_URL"
+# Enable Flashblocks support if websocket URL is provided
+if [[ -n "${RETH_FB_WEBSOCKET_URL:-}" ]]; then
+    ADDITIONAL_ARGS="$ADDITIONAL_ARGS --websocket-url=$RETH_FB_WEBSOCKET_URL"
     echo "Enabling Flashblocks support with endpoint: $RETH_FB_WEBSOCKET_URL"
+else
+    echo "Running in vanilla node mode (no Flashblocks URL provided)"
 fi
 
-# Select binary based on NODE_TYPE
-if [[ "$NODE_TYPE" == "base" ]]; then
-    echo "Starting Base Reth node"
-    BINARY="./base-reth-node"
-else
-    echo "Starting OP Reth node"
-    BINARY="./op-reth"
+# Add pruning for base
+if [[ "${RETH_PRUNING_ARGS+x}" = x ]]; then
+    echo "Adding pruning arguments: $RETH_PRUNING_ARGS"
+    ADDITIONAL_ARGS="$ADDITIONAL_ARGS $RETH_PRUNING_ARGS"
 fi
 
 mkdir -p "$RETH_DATA_DIR"
+echo "Starting reth with additional args: $ADDITIONAL_ARGS"
 echo "$OP_NODE_L2_ENGINE_AUTH_RAW" > "$OP_NODE_L2_ENGINE_AUTH"
 
 exec "$BINARY" node \
